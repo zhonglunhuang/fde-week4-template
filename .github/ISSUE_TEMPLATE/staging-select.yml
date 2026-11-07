@@ -1,0 +1,31 @@
+name: Staging 只讀查詢
+description: 在 Staging 的資料庫執行一個只讀的 SELECT，約 1 分鐘後結果會留言在這個 Issue
+title: "[Staging 查詢] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        用唯讀帳號在 Staging 的資料庫執行，只能查、不能改，不需要資料庫的密碼。
+        - 標題後面加一句說明，例如「[Staging 查詢] 確認某一天有幾筆資料」。標題開頭的「[Staging 查詢]」不要刪。
+        - 結果約 1 分鐘後會留言在這個 Issue；要改 SQL 重新查，編輯這個 Issue 的內容就好。
+        - 結果出來後，請第二位組員看過範圍，在下面留言確認。
+        - 要修改資料，請找帶組的技術導師（先備份、兩個人看過指令再改）。
+  - type: textarea
+    id: sql
+    attributes:
+      label: SQL（只能查詢，可以多行，可以有 -- 註解）
+      description: 只接受 SELECT、WITH、EXPLAIN 開頭的一個查詢；最多顯示 200 列，超過 10 秒會被停止。
+      render: sql
+      placeholder: |
+        SELECT count(*)
+        FROM users
+        WHERE created_at::date = current_date   -- 今天（台灣時間）；表名與日期換成你們要查的
+    validations:
+      required: true
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 為什麼要查
+      placeholder: 例如：確認某一天有幾筆資料
+    validations:
+      required: true

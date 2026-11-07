@@ -1,0 +1,123 @@
+{
+  "info": {
+    "_postman_id": "bfdb4f90-761d-416c-88b9-a1eb8988a4b6",
+    "name": "練習專案：登入身分（Token）",
+    "description": "用帳號密碼取得 Token，之後的請求帶 Authorization: Bearer {{token}}。用法見 Repo 的 postman/README.md。\n\n先在 Collection 的 Variables 分頁，在 Value 欄填 base_url（本機是 http://localhost:4000，Staging 填 Staging 的網址）、email、password（不要按 Share），再送「取得 Token」。\n\n匯出後用文字編輯器搜尋一次，確認檔案裡沒有密碼或 Token。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "取得 Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200：取得 Token', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "if (body.token) pm.collectionVariables.set('token', body.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/token",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "token"
+          ]
+        },
+        "description": "用 email 與 password 這兩個變數登入，回應的 token 自動存進變數 token（12 小時內有效）。\n\n要用好幾個身分：複製這個請求，把 email、password 換成別的變數（例如 email_clerk），Scripts 分頁 Post-response 裡的 'token' 換成 'token_clerk'。"
+      },
+      "response": []
+    },
+    {
+      "name": "目前登入的人（範例：帶 Token）",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200：帶著 Token 的身分', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/me",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "me"
+          ]
+        },
+        "description": "其他請求照這個寫：Headers 加 Authorization: Bearer {{token}}（或 Authorization 分頁選 Bearer Token，填 {{token}}）。換身分就換成另一個 Token 變數；沒有帶 Authorization 就是「沒有登入」。"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

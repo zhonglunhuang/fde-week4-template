@@ -1,0 +1,61 @@
+# 「部署 Staging」：把指定的版本部署到這一組的 Staging（帶組的技術導師代管的 Render＋Neon）。
+#
+# - 只能手動執行：Actions →「部署 Staging」→ Run workflow。合併進 stage 不會自動部署。
+# - 回滾也用它：「要部署的版本」填上一個正常的版本（標籤或 Commit 編號）。回滾不會還原資料庫。
+# - 做的事都在 backend/scripts/staging-deploy.mjs：找出版本的完整 Commit → 有唯讀連線就先備份資料庫 →
+#   把這個 Commit 推到部署用 Repo 的 stage（Render 收到就重新部署）→ 等 /api/version 換成這個版本（最多 20 分鐘）
+#   → /api/health 要 200 → 在這一次執行的摘要寫結果。
+# - 要設定的值（Repo 的 Settings → Secrets and variables → Actions，只有 Repo 擁有者能設）：
+#   Secrets：STAGING_MIRROR_TOKEN、STAGING_READONLY_DATABASE_URL；Variables：STAGING_MIRROR_REPO、STAGING_URL。
+#   做法見 docs/staging-mentor.md。
+name: 部署 Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 要部署的版本：stage（最新）、標籤（例如 v1.0.0-rc1）或 Commit 編號；回滾就填上一個正常的版本
+        required: true
+        default: stage
+        type: string
+
+permissions:
+  contents: read
+
+# 同一時間只跑一個部署；後來的排隊，不會取消正在跑的
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: 部署
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      # 輸入的版本與 Secrets 只用環境變數傳給腳本，不寫進指令
+      - name: 部署
+        id: deploy
+        env:
+          DEPLOY_REF: ${{ inputs.ref }}
+          STAGING_URL: ${{ vars.STAGING_URL }}
+          STAGING_MIRROR_REPO: ${{ vars.STAGING_MIRROR_REPO }}
+          STAGING_MIRROR_TOKEN: ${{ secrets.STAGING_MIRROR_TOKEN }}
+          STAGING_READONLY_DATABASE_URL: ${{ secrets.STAGING_READONLY_DATABASE_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node backend/scripts/staging-deploy.mjs
+      - name: 上傳部署前的備份
+        if: always() && steps.deploy.outputs.backup-file != ''
+        uses: actions/upload-artifact@v7
+        with:
+          path: backups/${{ steps.deploy.outputs.backup-file }}
+          archive: false
+          retention-days: 30
+          if-no-files-found: error

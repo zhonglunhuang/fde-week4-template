@@ -1,0 +1,51 @@
+# 「Staging 只讀查詢」：組員用 Issue 表單（.github/ISSUE_TEMPLATE/staging-select.yml）貼上 SELECT，
+# 這個 workflow 用唯讀帳號在 Staging 的資料庫執行，結果留言在同一個 Issue。
+#
+# - 只處理標題是「[Staging 查詢]」開頭、由 Repo 的擁有者或協作者開的 Issue；開好或編輯內容時都會執行。
+# - 只能查、不能改：只接受 SELECT、WITH、EXPLAIN；唯讀帳號（staging_reader）、唯讀交易、10 秒逾時，
+#   最多顯示 200 列（backend/scripts/staging-select.mjs）。錯誤只顯示 PostgreSQL 的訊息，不顯示連線資訊。
+# - Issue 的內容只用環境變數傳給腳本，不寫進指令。
+name: Staging 只讀查詢
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+  issues: write
+
+# 同一個 Issue 連續編輯時，只跑最後一次
+concurrency:
+  group: staging-select-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  select:
+    name: 查詢
+    if: >-
+      startsWith(github.event.issue.title, '[Staging 查詢]') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.issue.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      # 只裝執行時需要的套件（pg），比較快
+      - run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: 執行查詢
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          STAGING_READONLY_DATABASE_URL: ${{ secrets.STAGING_READONLY_DATABASE_URL }}
+        run: node backend/scripts/staging-select.mjs > "$RUNNER_TEMP/comment.md"
+      - name: 留言回覆結果
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: gh issue comment "$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/comment.md"

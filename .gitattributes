@@ -1,0 +1,6 @@
+# 確保 shell 腳本與設定在所有平台都用 LF（避免 Windows checkout 壞掉）
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.svg text
+*.sh text eol=lf

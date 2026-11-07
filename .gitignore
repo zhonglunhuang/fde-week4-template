@@ -1,0 +1,39 @@
+# ── 祕密：env 實檔一律不進版控，只保留 .example ──
+# （setup 初始化後，依技術棧補上專案的 env 路徑）
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# 戰情資料夾：PM 討論過程 / demo 素材，屬臨時工作狀態，一律不進版控
+# （正式產出走 tickets/ 與 docs/SPEC.md）
+cache/
+
+# 常見產物（依技術棧增補）
+node_modules/
+dist/
+coverage/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.log
+
+# 備份檔（可能含正式資料）
+*.sql
+*.sql.gz
+*.dump
+
+# OS / 編輯器
+.DS_Store
+.idea/
+.vscode/
+
+# ── 練習專案骨架（Node.js＋React＋PostgreSQL）──
+# Migration 與種子資料要進版控：上面的 *.sql 是擋備份檔用的，不加例外的話這兩個資料夾的 SQL 會默默沒進 Repo
+!backend/db/migrations/*.sql
+!backend/db/seeds/*.sql
+# 打包產物、資料庫備份（staging-backup 存在 backups/）與匯出的 Log（render-logs 存成 staging.log，上面的 *.log 已經擋住）
+backend/dist/
+frontend/dist/
+backups/

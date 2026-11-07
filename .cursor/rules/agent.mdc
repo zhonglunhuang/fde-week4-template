@@ -1,0 +1,18 @@
+---
+description: Engineering contract for Cursor
+alwaysApply: true
+---
+
+# Agent Rules
+
+Always start by reading `AGENTS.md`. It is the normative engineering contract for this repository.
+
+Use these supporting references:
+
+- `docs/SPEC.md`: current user-visible behavior. Update it in the same change when user-visible functionality changes.
+- `docs/PRINCIPLES.md`: production safety checklist for concurrency, idempotency, security, performance, migrations, and background jobs.
+- `tickets/`: feature tickets. No development on product code without an open ticket (status 待開發/開發中).
+- `.agents/skills/`: canonical repo-local skill workflows.
+- `.claude/skills/`: Claude Code adapters only; do not maintain duplicate workflow logic there.
+
+Keep all user-facing interfaces in sync unless the user explicitly scopes the work to one interface. Do not read or commit real env files, backups, or secrets. Do not run destructive restore/reset/deploy operations without explicit confirmation.

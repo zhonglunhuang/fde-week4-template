@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "rootDir": ".",
+    "outDir": "dist",
+    "allowJs": true
+  },
+  "include": ["src/**/*.ts", "db/**/*.ts", "test/**/*.ts"]
+}

@@ -1,0 +1,55 @@
+# 「備份 Staging 資料庫」：修改 Staging 的資料之前先按一次。
+#
+# - Actions →「備份 Staging 資料庫」→ Run workflow，原因欄寫要做什麼。約 1 分鐘後，這一次執行的摘要
+#   最上面會顯示備份檔名與時間（例如 staging-20261120-111830.dump），檔案在同一頁最下面的 Artifacts（保留 30 天）。
+# - 用唯讀帳號（STAGING_READONLY_DATABASE_URL）執行 pg_dump，再用 pg_restore --list 確認讀得出來
+#   （backend/scripts/staging-backup.mjs）。
+# - 還原只由技術導師做（docs/staging-mentor.md）。
+name: 備份 Staging 資料庫
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 為什麼要備份（例如：修改 Staging 的資料之前）
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: 備份
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      # 輸入的原因與 Secrets 只用環境變數傳給腳本，不寫進指令
+      - name: 備份
+        id: backup
+        env:
+          STAGING_READONLY_DATABASE_URL: ${{ secrets.STAGING_READONLY_DATABASE_URL }}
+          BACKUP_REASON: ${{ inputs.reason }}
+        run: node backend/scripts/staging-backup.mjs
+      - name: 上傳備份檔
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          path: backups/${{ steps.backup.outputs.file }}
+          archive: false
+          retention-days: 30
+          if-no-files-found: error
+      - name: 摘要加上下載連結
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: printf -- '- 下載連結：%s\n' "$ARTIFACT_URL" >> "$GITHUB_STEP_SUMMARY"

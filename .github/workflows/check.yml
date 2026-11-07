@@ -1,0 +1,50 @@
+# 「檢查」：開 PR 到 stage、合併進 stage 時，跑一次 make check，結果顯示在 PR 頁面下方。
+# 只檢查，不部署：合併進 stage 不等於部署到 Staging，部署是另外一個步驟（Actions 的「部署 Staging」）。
+name: 檢查
+
+on:
+  pull_request:
+    branches: [stage]
+  push:
+    branches: [stage]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: make check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      db:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: local_only
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      # 和 .env.example 一樣的本機練習值（只在這次執行的 Container 裡用）
+      DATABASE_URL: postgres://127.0.0.1:5432/app?user=app&password=local_only
+      API_PORT: 4000
+      API_BASE_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+      # SESSION_SECRET 每次執行時才產生，檔案裡不寫任何值
+      - name: 產生這次執行用的 SESSION_SECRET
+        run: echo "SESSION_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: make check
